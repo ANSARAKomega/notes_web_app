@@ -1,0 +1,30 @@
+﻿@model IEnumerable<NotesWebApp.Models.Notes>
+<h2>My Notes</h2>
+<p>
+    <a asp-action="Create" class="btn btn-primary">New Note</a>
+    <a asp-action="Logout" asp-controller="Account" class="btn btn-danger">Logout</a>
+</p>
+
+<div class="row">
+    @foreach (var note in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5>@note.Title</h5>
+                    <p>@note.Content</p>
+                    <form method="post" asp-action="ToggleFavorite" asp-route-id="@note.Id">
+                        <button type="submit" class="btn btn-sm @(note.IsFavorite ? "btn-warning" : "btn-outline-secondary")">
+                            @(note.IsFavorite ? "★ Favorite" : "☆ Mark Favorite")
+                        </button>
+                    </form>
+                    <a asp-action="Edit" asp-route-id="@note.Id" class="btn btn-sm btn-info mt-2">Edit</a>
+                    <form method="post" asp-action="Delete" asp-route-id="@note.Id"
+                          onsubmit="return confirm('Are you sure you want to delete this note?');">
+                        <button type="submit" class="btn btn-sm btn-danger mt-2">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
