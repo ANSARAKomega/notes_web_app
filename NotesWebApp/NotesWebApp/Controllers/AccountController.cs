@@ -17,19 +17,28 @@ namespace NotesWebApp.Controllers
         public IActionResult Login() => View();
 
         [HttpPost]
-        public IActionResult Login(string username, string password)
+        public async Task<IActionResult> Login(Users model)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Username == username && u.Password == password);
-
-            if (user != null)
+            if (ModelState.IsValid)
             {
-                HttpContext.Session.SetString("UserId", user.Id.ToString());
-                return RedirectToAction("Dashboard", "Notes");
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Username == model.Username && u.Password == model.Password);
+
+                if (user != null)
+                {
+                    HttpContext.Session.SetString("UserId", user.Id.ToString());
+                    HttpContext.Session.SetString("Username", user.Username);
+
+                    return RedirectToAction("Dashboard", "Notes");
+                }
+
+                ModelState.AddModelError("", "Invalid login attempt");
             }
 
-            ViewBag.Error = "Invalid credentials";
-            return View();
+            return View(model);
         }
+
+
 
         [HttpGet]
         public IActionResult Register() => View();
@@ -46,10 +55,15 @@ namespace NotesWebApp.Controllers
             return View(user);
         }
 
+
+
+        [HttpGet]
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+            return RedirectToAction("Login", "Account");
         }
+
+
     }
 }

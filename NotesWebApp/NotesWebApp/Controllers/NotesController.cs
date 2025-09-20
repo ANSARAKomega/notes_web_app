@@ -17,17 +17,26 @@ namespace NotesWebApp.Controllers
         private int? GetUserId()
         {
             var id = HttpContext.Session.GetString("UserId");
-            return id != null ? int.Parse(id) : (int?)null;
+            if (string.IsNullOrEmpty(id)) return null;
+
+            return int.TryParse(id, out var userId) ? userId : (int?)null;
         }
 
-        public async Task<IActionResult> Dashboard()
+
+        public async Task<IActionResult> Dashboard(bool favorites = false)
         {
             var userId = GetUserId();
             if (userId == null) return RedirectToAction("Login", "Account");
 
-            var notes = await _context.Notes.Where(n => n.UserId == userId).ToListAsync();
-            return View(notes);
+            var notes = _context.Notes.Where(n => n.UserId == userId.Value);
+            if (favorites)
+                notes = notes.Where(n => n.IsFavorite);
+
+            ViewBag.FavoritesOnly = favorites;
+            return View(await notes.ToListAsync());
         }
+
+
 
         [HttpGet]
         public IActionResult Create() => View();
@@ -58,14 +67,28 @@ namespace NotesWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Notes note)
         {
+            var userId = GetUserId();
+            if (userId == null) return RedirectToAction("Login", "Account");
+
             if (ModelState.IsValid)
             {
-                _context.Update(note);
-                await _context.SaveChangesAsync();
-                return RedirectToAction("Dashboard");
+                note.UserId = userId.Value;
+
+                try
+                {
+                    _context.Update(note);
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction("Dashboard");
+                }
+                catch (DbUpdateException ex)
+                {
+                    Console.WriteLine(ex.InnerException?.Message);
+                    ModelState.AddModelError("", "Error saving note.");
+                }
             }
             return View(note);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
@@ -80,16 +103,20 @@ namespace NotesWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ToggleFavorite(int id)
+        public async Task<IActionResult> ToggleFavorite(int id, bool? favorites)
         {
-            var note = await _context.Notes.FindAsync(id);
+            var userId = GetUserId();
+            if (userId == null) return RedirectToAction("Login", "Account");
+
+            var note = await _context.Notes.FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId.Value);
             if (note != null)
             {
                 note.IsFavorite = !note.IsFavorite;
-                _context.Update(note);
                 await _context.SaveChangesAsync();
             }
-            return RedirectToAction("Dashboard");
+
+            return RedirectToAction("Dashboard", new { favorites = favorites ?? false });
         }
+
     }
 }
