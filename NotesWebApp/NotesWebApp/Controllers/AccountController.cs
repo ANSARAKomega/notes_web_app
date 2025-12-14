@@ -64,6 +64,37 @@ namespace NotesWebApp.Controllers
             return RedirectToAction("Login", "Account");
         }
 
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(string username, string newPassword)
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(newPassword))
+            {
+                ViewBag.Error = "All fields are required";
+                return View();
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user == null)
+            {
+                ViewBag.Error = "User not found";
+                return View();
+            }
+
+            user.Password = newPassword; 
+            _context.SaveChanges();
+
+            ViewBag.Success = "Password reset successfully. You can now log in.";
+            return View();
+        }
+
+
 
     }
 }
