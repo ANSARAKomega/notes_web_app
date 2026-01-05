@@ -23,18 +23,36 @@ namespace NotesWebApp.Controllers
         }
 
 
-        public async Task<IActionResult> Dashboard(bool favorites = false)
+        public async Task<IActionResult> Dashboard(
+        bool favorites = false,
+        string? search = null
+        )
         {
             var userId = GetUserId();
-            if (userId == null) return RedirectToAction("Login", "Account");
+            if (userId == null)
+                return RedirectToAction("Login", "Account");
 
-            var notes = _context.Notes.Where(n => n.UserId == userId.Value);
+            var notes = _context.Notes
+                .Where(n => n.UserId == userId.Value);
+
             if (favorites)
                 notes = notes.Where(n => n.IsFavorite);
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                notes = notes.Where(n =>
+                    n.Title.Contains(search) ||
+                    n.Content.Contains(search)
+                );
+            }
+
             ViewBag.FavoritesOnly = favorites;
+            ViewBag.Search = search;
+
             return View(await notes.ToListAsync());
         }
+
 
 
 
